@@ -1,9 +1,21 @@
-// Adapted from https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials/blob/master/02_runtime_init/src/_arch/aarch64/cpu/boot.s
+// Adapted from /blob/master/02_runtime_init/src/_arch/aarch64/cpu/boot.s
 
 .equ _core_id_mask, 0xff
 
 .section .text._start
 
+_linux: // Let's fake being linux! https://www.kernel.org/doc/Documentation/arm64/booting.txt
+        mov x0, #1                // code0: Do nothing here (no uefi)
+        b       _start     // code1: Branch to real stuff....
+        .quad   0          // text_offset: linux needs none, neither do we
+        .quad   prog_size
+        .quad   2          // flags: 4k pagesize. might need adjustment. Page size currently undefined.
+        .quad   0          // res2: reserved
+        .quad   0          // res3: reserved
+        .quad   0          // res4: reserved
+        .long   0x644d5241 // magic: "ARMx64"
+        .long   0          // res5: header size for efi boot. Not needed.
+        .align  8
 _start:
 	// Only proceed on the boot core. Park it otherwise.
 	mrs	x1, mpidr_el1
@@ -13,6 +25,7 @@ _start:
 	b.ne	1f
 
 	// If execution reaches here, it is the boot core. Now, prepare the jump to Rust code.
+        mov x0, #1
 
 	// This loads the physical address of the stack end. For details see
 	// https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials/blob/master/16_virtual_mem_part4_higher_half_kernel/src/bsp/raspberrypi/link.ld
