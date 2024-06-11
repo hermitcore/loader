@@ -58,7 +58,6 @@ pub unsafe fn _start_rust() -> ! {
 }
 
 unsafe fn pre_init() -> ! {
-	info!("Enter startup code");
 
 	/* disable interrupts */
 	unsafe {

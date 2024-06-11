@@ -27,6 +27,7 @@ extern "C" {
 	static mut l2k_pgtable: u64;
 	static mut l3_pgtable: u64;
 	static mut L0mib_pgtable: u64;
+	static mut dtb_addr: u64;
 }
 
 /// start address of the RAM at Qemu's virt emulation
@@ -75,7 +76,7 @@ pub fn find_kernel() -> &'static [u8] {
 	};
 
 	if header.e_ident[0..SELFMAG] != ELFMAG[..] {
-		panic!("Don't found valid ELF file!");
+		panic!("Didn't find valid ELF file!");
 	}
 
 	#[cfg(target_endian = "little")]
@@ -255,3 +256,4 @@ unsafe fn enter_kernel(stack: *mut u8, entry: *const (), raw_boot_info: &'static
 		)
 	}
 }
+

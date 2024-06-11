@@ -25,7 +25,26 @@ _start:
 	b.ne	1f
 
 	// If execution reaches here, it is the boot core. Now, prepare the jump to Rust code.
-        mov x0, #1
+
+        // First: Save the dtb address!
+        adr x8, dtb_addr
+        str x0, [x8, 0]
+
+_print_init:
+        mov x2, #0xff000000
+        mov w0, #23
+        str w0, [x2, #0]
+        mov w0, #0x20
+        str w0, [x2, #0x4]
+_print_loop:
+        //ldr w0, [x2, #0x2c]
+        //and w1, w0, #8
+        //cmp w1, 0
+        //b.ne _print_loop
+        mov w0, 'A'
+        str w0, [x2, #0x30]
+        b _print_loop
+
 
 	// This loads the physical address of the stack end. For details see
 	// https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials/blob/master/16_virtual_mem_part4_higher_half_kernel/src/bsp/raspberrypi/link.ld
@@ -52,6 +71,7 @@ _start:
 .global l2k_pgtable
 .global l3_pgtable
 .global L0mib_pgtable
+.global dtb_addr
 
 .align 12
 l0_pgtable:
@@ -84,3 +104,5 @@ L16mib_pgtable:
     .space 512*8, 0
 L18mib_pgtable:
     .space 512*8, 0
+dtb_addr:
+    .space 8
