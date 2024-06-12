@@ -2,11 +2,21 @@ use core::ptr::NonNull;
 
 use hermit_dtb::Dtb;
 
+use crate::arch::drivers::qemu_serial::QemuSerial;
+
 pub struct Console {
-	stdout: NonNull<u8>,
+	stdout: &'static dyn SerialDriver,
 }
 
-fn stdout() -> u32 {
+pub trait SerialDriver {
+    fn init(&self);
+    fn set_baud(&self, baud_rate: u32);
+    fn putc(&self, c: u8);
+    fn getc(&self) -> u8;
+    fn get_addr(&self) -> u32;
+}
+
+fn stdout() -> impl SerialDriver {
 	/// Physical address of UART0 at Qemu's virt emulation
 	const SERIAL_PORT_ADDRESS: u32 = 0x09000000;
 
@@ -29,30 +39,30 @@ fn stdout() -> u32 {
 	} else {
 		SERIAL_PORT_ADDRESS
 	};
-	uart_address
+	QemuSerial::from_addr(uart_address)
 }
 
 impl Console {
 	pub fn write_bytes(&mut self, bytes: &[u8]) {
 		for byte in bytes.iter().copied() {
 			unsafe {
-				self.stdout.as_ptr().write_volatile(byte);
+				self.stdout.putc(byte);
 			}
 		}
 	}
 
-	pub(super) fn get_stdout(&self) -> NonNull<u8> {
+	pub(super) fn get_stdout(&self) -> impl SerialDriver {
 		self.stdout
 	}
 
-	pub(super) fn set_stdout(&mut self, stdout: NonNull<u8>) {
+	pub(super) fn set_stdout(&mut self, stdout: &'static dyn SerialDriver) {
 		self.stdout = stdout;
 	}
 }
 
 impl Default for Console {
 	fn default() -> Self {
-		let stdout = NonNull::new(stdout() as *mut u8).unwrap();
+		let stdout = stdout();
 		Self { stdout }
 	}
 }

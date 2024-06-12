@@ -2,6 +2,7 @@ mod console;
 pub use self::console::Console;
 pub mod entry;
 pub mod paging;
+pub mod drivers;
 
 use core::arch::asm;
 use core::ptr::{self, NonNull};
@@ -118,7 +119,7 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 		.count();
 	info!("Detect {} CPU(s)", cpus);
 
-	let uart_address: u32 = CONSOLE.lock().get().get_stdout().as_ptr() as u32;
+	let uart_address: u32 = CONSOLE.lock().get().get_stdout().get_addr();
 	info!("Detect UART at {:#x}", uart_address);
 
 	let pgt_slice = unsafe { core::slice::from_raw_parts_mut(ptr::addr_of_mut!(l0_pgtable), 512) };
@@ -164,10 +165,10 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 		*entry = RAM_START + (i * BasePageSize::SIZE) as u64 + PT_MEM;
 	}
 
-	CONSOLE
-		.lock()
-		.get()
-		.set_stdout(NonNull::new(0x1000 as *mut u8).unwrap());
+	//CONSOLE
+	//	.lock()
+	//	.get()
+	//	.set_stdout(NonNull::new(0x1000 as *mut u8).unwrap());
 
 	// Load TTBRx
 	unsafe {

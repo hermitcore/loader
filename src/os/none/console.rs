@@ -29,3 +29,4 @@ impl fmt::Write for Console {
 }
 
 pub static CONSOLE: OneShotMutex<Console> = OneShotMutex::new(Console::new());
+

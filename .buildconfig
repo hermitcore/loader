@@ -1,0 +1,11 @@
+[default]
+name=Default
+runtime=host
+toolchain=default
+config-opts=
+run-opts=
+prefix=/home/fridericus/.var/app/org.gnome.Builder/cache/gnome-builder/install/loader/host
+app-id=
+postbuild=
+prebuild=
+run-command=

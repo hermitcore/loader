@@ -3,7 +3,6 @@
 use core::arch::{asm, global_asm};
 
 use aarch64_cpu::registers::{Writeable, SCTLR_EL1};
-use log::info;
 
 extern "C" {
 	fn loader_main();
