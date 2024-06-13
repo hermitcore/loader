@@ -1,22 +1,21 @@
-use core::ptr::NonNull;
-
 use hermit_dtb::Dtb;
 
 use crate::arch::drivers::qemu_serial::QemuSerial;
 
 pub struct Console {
-	stdout: &'static dyn SerialDriver,
+	stdout: &'static mut dyn SerialDriver,
 }
 
 pub trait SerialDriver {
-    fn init(&self);
+    fn init(&mut self);
     fn set_baud(&self, baud_rate: u32);
-    fn putc(&self, c: u8);
+    fn putc(&mut self, c: u8);
     fn getc(&self) -> u8;
+    //fn putstr(&self, s: &[u8])
     fn get_addr(&self) -> u32;
 }
 
-fn stdout() -> impl SerialDriver {
+fn stdout() -> &'static mut dyn SerialDriver {
 	/// Physical address of UART0 at Qemu's virt emulation
 	const SERIAL_PORT_ADDRESS: u32 = 0x09000000;
 
@@ -51,12 +50,12 @@ impl Console {
 		}
 	}
 
-	pub(super) fn get_stdout(&self) -> impl SerialDriver {
+	pub(super) fn get_stdout(&self) -> &dyn SerialDriver {
 		self.stdout
 	}
 
-	pub(super) fn set_stdout(&mut self, stdout: &'static dyn SerialDriver) {
-		self.stdout = stdout;
+	pub(super) fn set_stdout(&mut self, stdout: u32) {
+		self.stdout = QemuSerial::from_addr(stdout);
 	}
 }
 

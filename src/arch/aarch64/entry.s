@@ -30,20 +30,20 @@ _start:
         adr x8, dtb_addr
         str x0, [x8, 0]
 
-_print_init:
-        mov x2, #0xff000000
-        mov w0, #23
-        str w0, [x2, #0]
-        mov w0, #0x20
-        str w0, [x2, #0x4]
-_print_loop:
+//_print_init:
+//        mov x2, #0xff000000
+//        mov w0, #23
+//        str w0, [x2, #0]
+//        mov w0, #0x20
+//        str w0, [x2, #0x4]
+//_print_loop:
         //ldr w0, [x2, #0x2c]
         //and w1, w0, #8
         //cmp w1, 0
         //b.ne _print_loop
-        mov w0, 'A'
-        str w0, [x2, #0x30]
-        b _print_loop
+//        mov w0, 'A'
+//        str w0, [x2, #0x30]
+//        b _print_loop
 
 
 	// This loads the physical address of the stack end. For details see

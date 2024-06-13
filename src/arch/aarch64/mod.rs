@@ -5,7 +5,7 @@ pub mod paging;
 pub mod drivers;
 
 use core::arch::asm;
-use core::ptr::{self, NonNull};
+use core::ptr::{self};
 
 use align_address::Align;
 use goblin::elf::header::header64::{Header, EI_DATA, ELFDATA2LSB, ELFMAG, SELFMAG};
@@ -19,6 +19,8 @@ use sptr::Strict;
 use crate::arch::paging::*;
 use crate::os::CONSOLE;
 use crate::BootInfoExt;
+
+use core::str;
 
 extern "C" {
 	static loader_end: u8;
@@ -56,7 +58,8 @@ pub fn find_kernel() -> &'static [u8] {
 		Dtb::from_raw(sptr::from_exposed_addr(DEVICE_TREE as usize))
 			.expect(".dtb file has invalid header")
 	};
-
+	let property = dtb.get_property("/chosen", "stdout-path");
+	info!("{}", str::from_utf8(&property.unwrap()).unwrap());
 	let module_start = dtb
 		.enum_subnodes("/chosen")
 		.find(|node| node.starts_with("module@"))
@@ -165,10 +168,10 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 		*entry = RAM_START + (i * BasePageSize::SIZE) as u64 + PT_MEM;
 	}
 
-	//CONSOLE
-	//	.lock()
-	//	.get()
-	//	.set_stdout(NonNull::new(0x1000 as *mut u8).unwrap());
+	CONSOLE
+		.lock()
+		.get()
+		.set_stdout(0x1000);
 
 	// Load TTBRx
 	unsafe {
