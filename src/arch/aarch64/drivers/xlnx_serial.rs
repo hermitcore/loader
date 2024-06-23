@@ -1,5 +1,8 @@
-use crate::arch::aarch64::console::SerialDriver;
+use core::num::{NonZeroU32};
+use core::ptr::NonNull;
+use crate::arch::drivers::{SerialDriver, SerialSuccess};
 use volatile::{VolatileFieldAccess, VolatileRef};
+use crate::arch::drivers::SerialSuccess::{ERetry, Success};
 
 const ZYNQ_UART_SR_TXACTIVE: u32 = 1<<11;
 const ZYNQ_UART_SR_TXFULL: u32 = 1<<4;
@@ -25,48 +28,60 @@ const ZYNQ_UART_MR_CHARLEN_8_BIT : u32 = 0x00000000;
 
 #[repr(C)]
 #[derive(VolatileFieldAccess)]
-struct XlnxSerial {
+pub struct XlnxRegisters {
     control: u32,
     mode: u32,
-    reserved: u32,
+    reserved1: [u32; 4],
     baud_rate_gen: u32,
-    reserved2: u32,
+    reserved2: [u32; 4],
     channel_sts: u32,
     tx_rx_fifo: u32,
     baud_rate_divider: u32,
 }
 
+pub struct XlnxSerial {
+    regs: VolatileRef<'static, XlnxRegisters>,
+}
+
 impl XlnxSerial {
-    pub fn from_addr(base_addr: u32) -> &'static mut XlnxSerial {
-        unsafe { &mut *(base_addr as *mut XlnxSerial) }
+    pub fn from_addr(base_addr: NonZeroU32) -> XlnxSerial {
+        Self {regs: unsafe { VolatileRef::new( NonNull::new_unchecked(base_addr.get() as *mut XlnxRegisters) )} }
     }
 }
 
 impl SerialDriver for XlnxSerial {
-    fn init(&mut self) {
-        let mut volatile_ref = VolatileRef::from_mut_ref(self);
-        let volatile_ptr = volatile_ref.as_mut_ptr();
-        volatile_ptr.control().write(ZYNQ_UART_CR_TX_EN | ZYNQ_UART_CR_RX_EN | ZYNQ_UART_CR_TXRST | ZYNQ_UART_CR_RXRST);
-        volatile_ptr.mode().write(ZYNQ_UART_MR_PARITY_NONE);
+    fn init(&mut self)  {
+        self.regs.as_mut_ptr().control().write(ZYNQ_UART_CR_TX_EN | ZYNQ_UART_CR_RX_EN | ZYNQ_UART_CR_TXRST | ZYNQ_UART_CR_RXRST);
+        self.regs.as_mut_ptr().mode().write(ZYNQ_UART_MR_PARITY_NONE);
     }
 
     fn set_baud(&self, _baud: u32) {return;}
 
-    fn putc(&mut self, c: u8) {
-        let mut volatile_ref = VolatileRef::from_mut_ref(self);
-        let volatile_ptr = volatile_ref.as_mut_ptr();
+    fn putc(&mut self, c: u8) -> SerialSuccess<u8> {
 
-        if (volatile_ptr.channel_sts().read() & ZYNQ_UART_SR_TXFULL != 0) { return; }
+        if self.regs.as_mut_ptr().channel_sts().read() & ZYNQ_UART_SR_TXFULL != 0 { return ERetry; }
 
-        volatile_ptr.tx_rx_fifo().write(c as u32);
+        self.regs.as_mut_ptr().tx_rx_fifo().write(c as u32);
+        Success(c)
     }
 
-    fn getc(&self) -> u8 {
-        'A' as u8
+    fn getc(&self) -> SerialSuccess<u8> {
+        Success('A' as u8)
+    }
+    
+    fn putstr(&mut self, s: &[u8]) {
+        for c in s.iter().copied() {
+            for _ in 0..100 {
+                match self.putc(c) { 
+                    ERetry => continue,
+                    Success(var) => break
+                }
+            }
+        }
     }
 
     fn get_addr(&self) -> u32 {
-        unsafe { core::ptr::addr_of!(*self) as u32 }
+        self.regs.as_ptr().as_raw_ptr().as_ptr() as u32 
     }
 }
 

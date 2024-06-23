@@ -5,6 +5,8 @@ pub mod paging;
 pub mod drivers;
 
 use core::arch::asm;
+use core::fmt::{Write};
+use core::num::NonZeroU32;
 use core::ptr::{self};
 
 use align_address::Align;
@@ -18,7 +20,7 @@ use sptr::Strict;
 
 use crate::arch::paging::*;
 use crate::os::CONSOLE;
-use crate::BootInfoExt;
+use crate::{BootInfoExt};
 
 use core::str;
 
@@ -122,7 +124,7 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 		.count();
 	info!("Detect {} CPU(s)", cpus);
 
-	let uart_address: u32 = CONSOLE.lock().get().get_stdout().get_addr();
+	let uart_address: u32 = CONSOLE.lock().get().get_stdout();
 	info!("Detect UART at {:#x}", uart_address);
 
 	let pgt_slice = unsafe { core::slice::from_raw_parts_mut(ptr::addr_of_mut!(l0_pgtable), 512) };
@@ -197,6 +199,8 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 				options(nostack),
 		);
 	}
+
+	info!("Successfully set up paging.");
 
 	let dtb = unsafe {
 		Dtb::from_raw(sptr::from_exposed_addr(DEVICE_TREE as usize))
