@@ -12,4 +12,5 @@ pub trait SerialDriver {
     fn getc(&self) -> SerialSuccess<u8>;
     fn putstr(&mut self, s: &[u8]);
     fn get_addr(&self) -> u32;
+    fn wait_empty(&mut self);
 }

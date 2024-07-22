@@ -10,6 +10,7 @@ use log::info;
 
 pub use self::console::CONSOLE;
 use crate::arch;
+use crate::arch::init;
 
 extern "C" {
 	static loader_end: u8;
@@ -21,6 +22,8 @@ extern "C" {
 #[no_mangle]
 pub(crate) unsafe extern "C" fn loader_main() -> ! {
 	crate::log::init();
+
+	init();
 
 	unsafe {
 		info!("Loader: [{:p} - {:p}]", &loader_start, &loader_end);
@@ -47,7 +50,10 @@ pub(crate) unsafe extern "C" fn loader_main() -> ! {
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
 	// We can't use `println!` or related macros, because `_print` unwraps a result and might panic again
-	writeln!(crate::os::CONSOLE.lock(), "[LOADER] {info}").ok();
+	let mut con =crate::os::CONSOLE.lock();
+	let _ =con.write_str("[LOADER] PANIC!\r\n");
+	writeln!(con, "[LOADER] {info}\r").ok();
+	
 
 	loop {}
 }

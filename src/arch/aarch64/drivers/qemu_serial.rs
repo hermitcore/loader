@@ -40,4 +40,8 @@ impl SerialDriver for QemuSerial {
     fn get_addr(&self) -> u32 {
         self.regs.as_ptr().as_raw_ptr().as_ptr() as u32
     }
+
+    fn wait_empty(&mut self) {
+        return;
+    }
 }

@@ -30,22 +30,6 @@ _start:
         adr x8, dtb_addr
         str x0, [x8, 0]
 
-//_print_init:
-//        mov x2, #0xff000000
-//        mov w0, #23
-//        str w0, [x2, #0]
-//        mov w0, #0x20
-//        str w0, [x2, #0x4]
-//_print_loop:
-        //ldr w0, [x2, #0x2c]
-        //and w1, w0, #8
-        //cmp w1, 0
-        //b.ne _print_loop
-//        mov w0, 'A'
-//        str w0, [x2, #0x30]
-//        b _print_loop
-
-
 	// This loads the physical address of the stack end. For details see
 	// https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials/blob/master/16_virtual_mem_part4_higher_half_kernel/src/bsp/raspberrypi/link.ld
 	adrp	x4, __boot_core_stack_end_exclusive
@@ -74,7 +58,7 @@ _start:
     orr x0, x0, #(1<<0)
     msr SCR_EL3, x0
 
-    mov x0, #0b01001
+    mov x0, #0b001001 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL2h
     msr SPSR_EL3, x0
 
     adr x0, el_2_entry
@@ -89,7 +73,7 @@ el_2_entry:
 	orr x0, x0, #(1<<31)
 	msr HCR_EL2, x0
 
-	mov x0, #0b00101
+	mov x0, #0b000101 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL1h
 	msr SPSR_EL2, x0
 
 	adr x0, el_1_entry

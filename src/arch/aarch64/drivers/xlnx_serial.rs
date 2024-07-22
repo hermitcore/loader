@@ -1,5 +1,8 @@
-use core::num::{NonZeroU32};
+use aarch64_cpu::asm::barrier::SY;
+use core::hint;
+use core::num::NonZeroU32;
 use core::ptr::NonNull;
+use aarch64_cpu::asm::barrier;
 use crate::arch::drivers::{SerialDriver, SerialSuccess};
 use volatile::{VolatileFieldAccess, VolatileRef};
 use crate::arch::drivers::SerialSuccess::{ERetry, Success};
@@ -58,7 +61,8 @@ impl SerialDriver for XlnxSerial {
     fn set_baud(&self, _baud: u32) {return;}
 
     fn putc(&mut self, c: u8) -> SerialSuccess<u8> {
-
+        barrier::dmb(SY);
+        barrier::dsb(SY);
         if self.regs.as_mut_ptr().channel_sts().read() & ZYNQ_UART_SR_TXFULL != 0 { return ERetry; }
 
         self.regs.as_mut_ptr().tx_rx_fifo().write(c as u32);
@@ -68,20 +72,40 @@ impl SerialDriver for XlnxSerial {
     fn getc(&self) -> SerialSuccess<u8> {
         Success('A' as u8)
     }
-    
+
     fn putstr(&mut self, s: &[u8]) {
-        for c in s.iter().copied() {
-            for _ in 0..100 {
-                match self.putc(c) { 
-                    ERetry => continue,
-                    Success(var) => break
+        'foo: for c in s.iter().copied() {
+            if c == b'\n' {
+                for _ in 0..1000 {
+                    match self.putc(b'\r') {
+                        ERetry => continue,
+                        Success(c) => break
+                    }
                 }
             }
+            for _ in 0..1000 {
+                hint::spin_loop();
+                match self.putc(c) {
+                    ERetry => continue,
+                    Success(_) => continue 'foo,
+                }
+            }
+            self.init();
+            while self.regs.as_mut_ptr().channel_sts().read() & ZYNQ_UART_SR_TXEMPTY != 0 {hint::spin_loop();}
         }
     }
 
     fn get_addr(&self) -> u32 {
         self.regs.as_ptr().as_raw_ptr().as_ptr() as u32 
+    }
+
+    fn wait_empty(&mut self) {
+        while self.regs.as_mut_ptr().channel_sts().read() & ZYNQ_UART_SR_TXACTIVE != 0 {
+            hint::spin_loop();
+        }
+        while self.regs.as_mut_ptr().channel_sts().read() & ZYNQ_UART_SR_TXEMPTY != 0 {
+            hint::spin_loop();
+        }
     }
 }
 

@@ -59,8 +59,13 @@ impl Console {
 		self.stdout.get_addr()
 	}
 
-	pub(super) fn set_stdout(&mut self, stdout: u32) {
+	pub(crate) fn set_stdout(&mut self, stdout: u32) {
 		self.stdout = XlnxSerial::from_addr(NonZeroU32::new(stdout).unwrap());
+		self.stdout.init();
+	}
+	
+	pub(crate) fn wait_empty(&mut self) {
+		self.stdout.wait_empty();
 	}
 }
 

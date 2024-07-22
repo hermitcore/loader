@@ -1,11 +1,12 @@
 mod console;
+
 pub use self::console::Console;
 pub mod entry;
 pub mod paging;
 pub mod drivers;
 
 use core::arch::asm;
-use core::fmt::{Write};
+use core::fmt::Write;
 use core::num::NonZeroU32;
 use core::ptr::{self};
 
@@ -20,9 +21,10 @@ use sptr::Strict;
 
 use crate::arch::paging::*;
 use crate::os::CONSOLE;
-use crate::{BootInfoExt};
+use crate::BootInfoExt;
 
 use core::str;
+use aarch64_cpu::asm::barrier::{dmb, dsb, isb, SY};
 
 extern "C" {
 	static loader_end: u8;
@@ -50,6 +52,18 @@ const PT_PT: u64 = 0x713;
 const PT_MEM: u64 = 0x713;
 const PT_MEM_CD: u64 = 0x70F;
 const PT_SELF: u64 = 1 << 55;
+
+pub fn init() {
+	//let mut tm = CONSOLE.lock().write_str("Beeb Boop ...\n");
+	let mut con = CONSOLE.lock();
+	con.write_str("Der Roboter ist traurig...\r\n").unwrap();
+	con.write_str("Beep Boop ...\r\n").unwrap();
+	let debug = ::core::format_args!("TEst123");
+	let test2 = debug.as_str();
+	//let mut tmp = XlnxSerial::from_addr(NonZeroU32::new(0xff000000).unwrap());
+	//tmp.init();
+	//tmp.putc(b't');
+}
 
 pub unsafe fn get_memory(_memory_size: u64) -> u64 {
 	(unsafe { ptr::addr_of!(loader_end) }.addr() as u64).align_up(LargePageSize::SIZE as u64)
@@ -208,17 +222,23 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 	};
 
 	if let Some(device_type) = dtb.get_property("/memory", "device_type") {
+		dbg!(device_type);
 		let device_type = core::str::from_utf8(device_type)
 			.unwrap()
 			.trim_matches(char::from(0));
 		assert!(device_type == "memory");
 	}
-
-	let reg = dtb.get_property("/memory", "reg").unwrap();
-	let (start_slice, size_slice) = reg.split_at(core::mem::size_of::<u64>());
-	let ram_start = u64::from_be_bytes(start_slice.try_into().unwrap());
-	let ram_size = u64::from_be_bytes(size_slice.try_into().unwrap());
-
+	info!("Memory found!");
+	//let reg = dtb.get_property("/memory", "reg");
+	//dbg!(reg);
+	//let mut slice_iter = reg.unwrap().chunks(core::mem::size_of::<u64>());
+	//dbg!();
+	let ram_start =  0x0; //u64::from_be_bytes(slice_iter.next().unwrap().try_into().unwrap());
+	//dbg!();
+	let ram_size = 0x41000000;//u64::from_be_bytes(slice_iter.next().unwrap().try_into().unwrap());
+	dbg!();
+	
+	info!("ram_start: {:#x}, ram_size: {:#x}. Trying to jump into kernel soon.", ram_start, ram_size);
 	let boot_info = BootInfo {
 		hardware_info: HardwareInfo {
 			phys_addr_range: ram_start..ram_start + ram_size,
@@ -233,7 +253,7 @@ pub unsafe fn boot_kernel(kernel_info: LoadedKernel) -> ! {
 	let stack = sptr::from_exposed_addr_mut(stack);
 	let entry = sptr::from_exposed_addr(entry_point.try_into().unwrap());
 	let raw_boot_info = boot_info.write();
-
+	
 	unsafe { enter_kernel(stack, entry, raw_boot_info) }
 }
 
@@ -244,13 +264,14 @@ unsafe fn enter_kernel(stack: *mut u8, entry: *const (), raw_boot_info: &'static
 			unsafe { core::mem::transmute(entry) };
 		entry
 	};
-
+	dbg!(entry);
 	info!("Entering kernel at {entry:p}, stack at {stack:p}, raw_boot_info at {raw_boot_info:p}");
 
 	// Memory barrier
-	unsafe {
-		asm!("dsb sy", options(nostack));
-	}
+	dsb(SY);
+	isb(SY);
+	dmb(SY);
+	CONSOLE.lock().get().wait_empty();
 
 	unsafe {
 		asm!(

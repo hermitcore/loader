@@ -1,3 +1,5 @@
+#![feature(strict_provenance)]
+#![feature(stdarch_arm_barrier)]
 #![no_std]
 #![no_main]
 #![warn(rust_2018_idioms)]
