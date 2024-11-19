@@ -24,7 +24,7 @@ use crate::os::CONSOLE;
 use crate::BootInfoExt;
 
 use core::str;
-use aarch64_cpu::asm::barrier::{dmb, dsb, isb, SY};
+use aarch64_cpu::asm::barrier::{dmb, dsb, isb, SY, NSH};
 
 extern "C" {
 	static loader_end: u8;
@@ -268,10 +268,11 @@ unsafe fn enter_kernel(stack: *mut u8, entry: *const (), raw_boot_info: &'static
 	info!("Entering kernel at {entry:p}, stack at {stack:p}, raw_boot_info at {raw_boot_info:p}");
 
 	// Memory barrier
+	CONSOLE.lock().get().wait_empty();
 	dsb(SY);
 	isb(SY);
 	dmb(SY);
-	CONSOLE.lock().get().wait_empty();
+	dsb(NSH);
 
 	unsafe {
 		asm!(

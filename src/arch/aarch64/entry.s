@@ -53,12 +53,15 @@ _start:
 	msr SCTLR_EL2, xzr
 	msr HCR_EL2, xzr
 
-	mrs x0, SCR_EL3
+    mrs x0, SCR_EL3
+    and x0, x0, #(~(1 << 3))
+    and x0, x0, #(~(1 << 2))
+    and x0, x0, #(~(1 << 1))
     orr x0, x0, #(1<<10)
     orr x0, x0, #(1<<0)
     msr SCR_EL3, x0
 
-    mov x0, #0b001001 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL2h
+    mov x0, #0b1111001001 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL2h
     msr SPSR_EL3, x0
 
     adr x0, el_2_entry
@@ -73,7 +76,7 @@ el_2_entry:
 	orr x0, x0, #(1<<31)
 	msr HCR_EL2, x0
 
-	mov x0, #0b000101 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL1h
+	mov x0, #0b1111000101 // D-Flag, I-FLAG, A-FLAG, F-FLAG, EL1h
 	msr SPSR_EL2, x0
 
 	adr x0, el_1_entry
