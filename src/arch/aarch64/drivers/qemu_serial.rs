@@ -28,6 +28,7 @@ impl SerialDriver for QemuSerial {
         self.regs.as_mut_ptr().out().write(c);
         Success(c)
     }
+    ///TODO: Implement actual read functionality.
     fn getc(&self) -> SerialSuccess<u8> {
         Success('A' as u8)
     }

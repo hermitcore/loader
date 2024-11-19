@@ -1,14 +1,16 @@
 use core::num::NonZeroU32;
 use hermit_dtb::Dtb;
 
+use crate::arch::drivers::qemu_serial::QemuSerial;
 use crate::arch::drivers::xlnx_serial::XlnxSerial;
 use crate::arch::drivers::SerialDriver;
 
 pub struct Console {
-	stdout: XlnxSerial,
+	stdout: QemuSerial,
 }
 
-pub fn stdout() -> XlnxSerial {
+///TODO: Rewrite to create serial driver available on target hardware (read from dtb) 
+pub fn stdout() -> QemuSerial {
 	/// Physical address of UART0 at Qemu's virt emulation
 	const SERIAL_PORT_ADDRESS: u32 = 0x09000000;
 
@@ -45,7 +47,7 @@ pub fn stdout() -> XlnxSerial {
 	} else {
 		SERIAL_PORT_ADDRESS
 	};
-	let mut  serial = XlnxSerial::from_addr(NonZeroU32::new(0xff000000).unwrap());
+	let mut  serial = QemuSerial::from_addr(NonZeroU32::new(uart_address).unwrap());
 	serial.init();
 	serial
 }
@@ -60,7 +62,7 @@ impl Console {
 	}
 
 	pub(crate) fn set_stdout(&mut self, stdout: u32) {
-		self.stdout = XlnxSerial::from_addr(NonZeroU32::new(stdout).unwrap());
+		self.stdout = QemuSerial::from_addr(NonZeroU32::new(stdout).unwrap());
 		self.stdout.init();
 	}
 	
