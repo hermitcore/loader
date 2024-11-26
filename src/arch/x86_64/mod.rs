@@ -8,6 +8,8 @@ cfg_if::cfg_if! {
 	}
 }
 
+mod devicetree;
+mod pci;
 mod console;
 #[cfg(target_os = "none")]
 mod paging;
