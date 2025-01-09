@@ -14,9 +14,9 @@ use x86_64::structures::paging::{PageSize, PageTableFlags, Size2MiB, Size4KiB};
 
 use super::paging;
 use super::physicalmem::PhysAlloc;
+use crate::arch::x86_64::devicetree::DeviceTree;
 use crate::arch::x86_64::{KERNEL_STACK_SIZE, SERIAL_IO_PORT};
 use crate::fdt::Fdt;
-use crate::arch::x86_64::devicetree::DeviceTree;
 use crate::BootInfoExt;
 
 extern "C" {
